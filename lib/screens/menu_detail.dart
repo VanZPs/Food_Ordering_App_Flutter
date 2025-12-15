@@ -15,11 +15,24 @@ class MenuDetail extends StatefulWidget {
 
 class _MenuDetailPageState extends State<MenuDetail> {
   int quantity = 1;
+  String _convertDriveLink(String url) {
+    if (url.contains('drive.google.com') && url.contains('/file/d/')) {
+      try {
+        final id = url.split('/file/d/')[1].split('/')[0];
+        return 'https://drive.google.com/uc?export=view&id=$id';
+      } catch (e) {
+        return url;
+      }
+    }
+    return url;
+  }
 
   @override
   Widget build(BuildContext context) {
     final currencyFormatter =
         NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+
+    final directImageUrl = _convertDriveLink(widget.menu.imageUrl);
 
     return Dialog(
       shape: RoundedRectangleBorder(
@@ -86,6 +99,13 @@ class _MenuDetailPageState extends State<MenuDetail> {
                             colors: [Color(0xFFFFEDD5), Color(0xFFFEE2E2)],
                           ),
                           borderRadius: BorderRadius.circular(20),
+                          image: widget.menu.imageUrl.isNotEmpty
+                              ? DecorationImage(
+                                  image: NetworkImage(directImageUrl),
+                                  fit: BoxFit.cover,
+                                  onError: (exception, stackTrace) {},
+                                )
+                              : null,
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withOpacity(0.1),
@@ -94,15 +114,17 @@ class _MenuDetailPageState extends State<MenuDetail> {
                             ),
                           ],
                         ),
-                        child: Center(
-                          child: Text(
-                            widget.menu.name.characters.first.toUpperCase(),
-                            style: const TextStyle(
-                              fontSize: 80,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
+                        child: widget.menu.imageUrl.isEmpty
+                            ? Center(
+                                child: Text(
+                                  widget.menu.name.characters.first.toUpperCase(),
+                                  style: const TextStyle(
+                                    fontSize: 80,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              )
+                            : null,
                       ),
                     ),
 

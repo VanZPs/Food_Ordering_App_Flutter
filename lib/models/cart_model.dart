@@ -4,11 +4,13 @@ class CartItem {
   final String name;
   final double price;
   int quantity;
+  final String imageUrl;
 
   CartItem({
     required this.name,
     required this.price,
     this.quantity = 1,
+    this.imageUrl = '',
   });
 
   Map<String, dynamic> toMap() {
@@ -16,6 +18,7 @@ class CartItem {
       'name': name,
       'price': price,
       'quantity': quantity,
+      'imageUrl': imageUrl,
     };
   }
 
@@ -24,6 +27,7 @@ class CartItem {
       name: map['name'],
       price: (map['price'] as num).toDouble(),
       quantity: map['quantity'] ?? 1,
+      imageUrl: map['imageUrl'] ?? '',
     );
   }
   

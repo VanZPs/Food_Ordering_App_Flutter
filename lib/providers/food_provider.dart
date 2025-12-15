@@ -38,7 +38,8 @@ class FoodProvider with ChangeNotifier {
       _cart.add(CartItem(
         name: menu.name,
         price: menu.price.toDouble(), 
-        quantity: 1
+        quantity: 1,
+        imageUrl: menu.imageUrl,
       ));
     }
     await _saveCart();

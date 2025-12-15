@@ -27,6 +27,18 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  String _convertDriveLink(String url) {
+    if (url.contains('drive.google.com') && url.contains('/file/d/')) {
+      try {
+        final id = url.split('/file/d/')[1].split('/')[0];
+        return 'https://drive.google.com/uc?export=view&id=$id';
+      } catch (e) {
+        return url;
+      }
+    }
+    return url;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -307,9 +319,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final currencyFormatter =
         NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
+    final directImageUrl = _convertDriveLink(menu.imageUrl);
+
     return InkWell(
       onTap: () {
-        // Tampilkan detail menu dengan dialog
         showDialog(
           context: context,
           builder: (context) => MenuDetail(menu: menu),
@@ -343,19 +356,51 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 child: Stack(
                   children: [
-                    Center(
-                      child: Text(
-                        menu.name.characters.first.toUpperCase(),
-                        style: const TextStyle(fontSize: 48),
+                    if (menu.imageUrl.isNotEmpty)
+                      Positioned.fill(
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                          child: Image.network(
+                            directImageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Center(
+                                child: Text(
+                                  menu.name.characters.first.toUpperCase(),
+                                  style: const TextStyle(fontSize: 48),
+                                ),
+                              );
+                            },
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Center(
+                                child: CircularProgressIndicator(
+                                  value: loadingProgress.expectedTotalBytes != null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                          loadingProgress.expectedTotalBytes!
+                                      : null,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
                       ),
-                    ),
+                    
+                    if (menu.imageUrl.isEmpty)
+                      Center(
+                        child: Text(
+                          menu.name.characters.first.toUpperCase(),
+                          style: const TextStyle(fontSize: 48),
+                        ),
+                      ),
+                      
                     Positioned(
                       top: 8,
                       right: 8,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: Colors.white.withOpacity(0.9),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
@@ -487,6 +532,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 separatorBuilder: (ctx, i) => const SizedBox(height: 12),
                 itemBuilder: (ctx, i) {
                   final item = provider.cart[i];
+                  final directImageUrl = _convertDriveLink(item.imageUrl);
+
                   return Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -506,16 +553,32 @@ class _HomeScreenState extends State<HomeScreen> {
                           width: 60,
                           height: 60,
                           decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
                             gradient: const LinearGradient(
                               colors: [Color(0xFFFFEDD5), Color(0xFFFEE2E2)],
                             ),
-                            borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Center(
-                            child: Text(
-                              item.name[0],
-                              style: const TextStyle(fontSize: 24),
-                            ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: item.imageUrl.isNotEmpty
+                                ? Image.network(
+                                    directImageUrl,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Center(
+                                        child: Text(
+                                          item.name[0],
+                                          style: const TextStyle(fontSize: 24),
+                                        ),
+                                      );
+                                    },
+                                  )
+                                : Center(
+                                    child: Text(
+                                      item.name[0],
+                                      style: const TextStyle(fontSize: 24),
+                                    ),
+                                  ),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -624,7 +687,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: double.infinity,
                       child: ElevatedButton(
                         onPressed: () {
-                          // Simpan total sebelum cart dibersihkan
                           final totalPayment = provider.totalPayment;
                           final cartItemCount = provider.cart.fold<int>(
                             0, (sum, item) => sum + item.quantity
