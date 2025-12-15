@@ -24,47 +24,56 @@ class FoodProvider with ChangeNotifier {
     }
   }
 
-  Future<void> seedDatabase() async {
-    List<Menu> initialMenus = [
-      Menu(name: "Nasi Goreng Spesial", price: 25000, category: "Makanan", order: 1),
-      Menu(name: "Mie Goreng Jawa", price: 22000, category: "Makanan", order: 2),
-      Menu(name: "Ayam Bakar Madu", price: 30000, category: "Makanan", order: 3),
-      Menu(name: "Es Teh Manis", price: 5000, category: "Minuman", order: 4),
-      Menu(name: "Jus Alpukat", price: 15000, category: "Minuman", order: 5),
-    ];
-
-    for (var menu in initialMenus) {
-      final docRef = _firestore.collection('menus').doc(menu.name);
-      final doc = await docRef.get();
-      if (!doc.exists) {
-        await docRef.set(menu.toMap());
-        debugPrint("Menu ${menu.name} ditambahkan.");
-      } else {
-        debugPrint("Menu ${menu.name} sudah ada.");
-      }
-    }
-    await fetchMenus();
-  }
-
   Future<void> loadCart() async {
     _cart = await _storageService.getCart();
     notifyListeners();
   }
 
   Future<void> addToCart(Menu menu) async {
-    _cart.add(CartItem(name: menu.name, price: menu.price));
-    await _storageService.saveCart(_cart);
-    notifyListeners();
+    final index = _cart.indexWhere((item) => item.name == menu.name);
+    
+    if (index != -1) {
+      _cart[index].quantity++;
+    } else {
+      _cart.add(CartItem(
+        name: menu.name,
+        price: menu.price.toDouble(), 
+        quantity: 1
+      ));
+    }
+    await _saveCart();
+  }
+
+  Future<void> updateQuantity(String itemName, int change) async {
+    final index = _cart.indexWhere((item) => item.name == itemName);
+    if (index != -1) {
+      final newQuantity = _cart[index].quantity + change;
+      if (newQuantity > 0) {
+        _cart[index].quantity = newQuantity;
+      } else {
+        _cart.removeAt(index);
+      }
+      await _saveCart();
+    }
+  }
+
+  Future<void> removeItem(String itemName) async {
+    _cart.removeWhere((item) => item.name == itemName);
+    await _saveCart();
   }
 
   Future<void> clearCart() async {
     _cart.clear();
-    await _storageService.clearCart();
+    await _saveCart();
+  }
+
+  Future<void> _saveCart() async {
+    await _storageService.saveCart(_cart);
     notifyListeners();
   }
 
-  double get subtotal => _cart.fold(0, (sum, item) => sum + item.price);
+  double get subtotal => _cart.fold(0, (sum, item) => sum + (item.price * item.quantity));
   double get serviceCharge => subtotal * 0.075;
-  double get taxPB1 => (subtotal + serviceCharge) * 0.10; 
+  double get taxPB1 => (subtotal + serviceCharge) * 0.10;
   double get totalPayment => subtotal + serviceCharge + taxPB1;
 }
